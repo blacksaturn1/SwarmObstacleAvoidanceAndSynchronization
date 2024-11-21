@@ -1,0 +1,172 @@
+#
+# In the ARGoS window, you can move the camera with the following commands:
+#
+# - Translation: W A S D Q E keys, right-click + drag
+# - Rotation: left-click + drag
+#
+# Selection: shift-click on the robot
+# Remove selection: shift-click elsewhere
+#
+# Bug: selection is finnicky in the top-down view (Camera 1).
+# Solution: switch to another camera and it'll work.
+#
+
+#
+# Compiling and running the code
+#
+# - In the ARGoS window: Pause the simulation (if it's not paused already)
+# - In the editor: do what you need, save, press the "Execute" button
+# - In the ARGoS window: Press the "Play", "Step", or "Fast Forward" buttons
+#
+
+#
+# This editor sucks.
+#
+# I know.
+#
+# But when it's open, it detects whether the open files have been modified elsewhere.
+# So open this editor and then open the file you wanna edit in your favorite editor.
+# When you save in your editor, the changes will be reflected here. Press Execute to compile and run.
+# If you want syntax highlighting, JavaScript is pretty similar to Buzz.
+#
+
+#include "include/vec2.bzz"
+
+# We need this for 2D vectors
+include "vec2.bzz"
+
+
+# Lennard-Jones parameters
+TARGET     = 283.0
+EPSILON    = 150.0
+
+# Lennard-Jones interaction magnitude
+function lj_magnitude(dist, target, epsilon) {
+  return -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
+}
+
+# Neighbor data to LJ interaction vector
+function lj_vector(rid, data) {
+  return math.vec2.newp(lj_magnitude(data.distance, TARGET, EPSILON), data.azimuth)
+}
+
+# Accumulator of neighbor LJ interactions
+function lj_sum(rid, data, accum) {
+  return math.vec2.add(data, accum)
+}
+
+# Calculates and actuates the flocking interaction
+
+function hexagon() {
+  # Calculate accumulator
+  var accum = neighbors.map(lj_vector).reduce(lj_sum, math.vec2.new(0.0, 0.0))
+  if(neighbors.count() > 0)
+    math.vec2.scale(accum, 1.0 / neighbors.count())
+  # Move according to vector
+  goto(accum.x, accum.y)
+}
+
+
+
+
+
+
+# This function is executed once at init time
+function init() {
+	k=0.1
+	state = 0
+	set_leds(0,255,0)
+	c = id/2
+	T = 30
+	log("state:" , state)
+	log("c:" , c)
+}
+
+# This function is executed at each time step
+# The main loop is controller by ARGoS
+function step() {
+#	set_wheels(10.0,10.0)
+#	log("BEFORE")
+#	log(proximity[0].Angle)
+#	log("Angle: ", proximity[0].angle, "Value:",proximity[0].value)
+#	log("Angle: ", proximity[7].angle, "Value:",proximity[7].value)
+#	log("AFTER")
+	#log("INFO: x = " , proximity[0])
+#neighbors.foreach(
+#  function(rid, data) {
+#    log("robot ", rid, ": ",
+#        "distance  = ", data.distance, ", ",
+#        "azimuth   = ", data.azimuth, ", ",
+#        "elevation = ", data.elevation) })
+
+#neighbors.foreach(
+#  function(rid, data) {
+#    log("robot ", rid, ": ","color  = ", data.color) 
+#	})
+
+c = c+1
+
+neighbors.listen("state",
+   function(vid, value, rid) {
+
+			if (value==1){
+				c = c + (k*c)
+	      log("RobotID: ",id," Got (", vid, ",", value, ") from robot #", rid)
+			}
+   }
+)
+
+#log("c: ", c)
+if (c>T){
+	state = 1
+	set_leds(255,0,0)
+	c = 0
+}
+else{
+	state = 0
+	set_leds(0,255,0)
+
+}
+
+#log("neighbors.count(): ", neighbors.count())
+
+x = 0
+while (x < 8) {
+
+	#log("Angle: ", proximity[x].angle, "Value:",proximity[x].value)
+	if (proximity[x].value != 0){
+#		gotoc(1.0,-2.0)
+#		gotop(-5.,proximity[x].angle)
+		if (x >4){
+			set_wheels(-7.0,10.0)
+		}
+		else
+			set_wheels(10.0,-7.0)
+		#set_leds(255,0,0)
+		#	log("Turning: ", id)
+			return
+	}
+	else{
+		#set_leds(0,255,0)
+		gotoc(10.,0.)
+	}
+  x = x + 1
+}
+
+
+
+
+#hexagon()
+
+
+neighbors.broadcast("state", state)
+
+}
+
+# This function is executed when you press the reset button
+function reset() {
+}
+
+# This function is executed once when you close the simulator
+function destroy() {
+}
